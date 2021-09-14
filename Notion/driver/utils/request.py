@@ -18,9 +18,9 @@ def catch_error(response):
 
 
 class RequestNotionAPI:
-    def __init__(self, id: str, headers: Dict) -> None:
-        self.id = id
+    def __init__(self, headers: Dict, id: str = None) -> None:
         self.headers = headers
+        self.id = id
 
 
 class RequestDatabase(RequestNotionAPI):
@@ -38,6 +38,7 @@ class RequestPage(RequestNotionAPI):
 
     def create(self, data) -> None:
         url = self.URL
+        data = json.dumps(data)
         response = requests.post(url, headers=self.headers, data=data)
         catch_error(response)
         print("✅ Page has been created")

@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict
-from .request import RequestBlock
+from .request import RequestBlock, RequestPage
 from .connect import Notion
+import pandas as pd
 
 
 class Block(ABC):
@@ -33,13 +34,12 @@ class Block(ABC):
 
     def update(self):
         data = {self.type: self.value}
-        RequestBlock(self.id, Notion.headers).update(data)
+        RequestBlock(Notion.headers, self.id).update(data)
 
     def delete(self):
-        RequestBlock(self.id, Notion.headers).delete()
+        RequestBlock(Notion.headers, self.id).delete()
 
 
-# TODO: add a rich text object
 class TextBLock(Block):
     type = None
 
@@ -89,13 +89,41 @@ class NumberedList(TextBLock):
 class ToDo(TextBLock):
     type = "to_do"
 
+    @classmethod
+    def create(cls, text: str, checked: bool = False, link: str = None):
+        return {
+            "type": cls.type,
+            cls.type: {
+                "text": [
+                    {
+                        "type": "text",
+                        "text": {"content": text, "link": link},
+                    }
+                ],
+                "checked": checked,
+            },
+        }
+
 
 class Toggle(TextBLock):
     type = "toggle"
 
 
-class ChildPage:
+class ChildPage(Block):
     type = "child_page"
+
+    def get(self):
+        return self.value["title"]
+
+    def set(self, value):
+        self.value["title"] = value
+
+    @classmethod
+    def create(cls, title: str):
+        return {
+            "type": cls.type,
+            "properties": {"title": [{"text": {"content": title}}]},
+        }
 
 
 class Embed(Block):
@@ -128,7 +156,7 @@ mapping = {
 
 def extract_block(block_object):
     block_type = block_object.get("type")
-    return mapping[block_type](block_object)  # .get()
+    return mapping[block_type](block_object)
 
 
 def insert_block(block_object, value):

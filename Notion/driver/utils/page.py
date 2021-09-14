@@ -1,7 +1,7 @@
 from typing import Dict
 import pandas as pd
 from .property import Property
-from .block import Block, extract_block, insert_block
+from .block import Block, ChildPage, extract_block, insert_block
 from .request import RequestPage, RequestBlock
 
 
@@ -27,7 +27,7 @@ class PageProperties:
         return pd.Series(data)
 
     def update(self) -> None:
-        RequestPage(self.parent_id, self.headers).update(self.raw)
+        RequestPage(self.headers, self.parent_id).update(self.raw)
 
 
 class PageContent:
@@ -60,5 +60,13 @@ class PageContent:
             )
         return pd.DataFrame(result)
 
-    def append(self, block: Block) -> None:
-        RequestBlock(self.page_id, self.headers).append_children(block)
+    def append(self, block: Dict) -> None:
+        if block["type"] == "child_page":
+            block.pop("type")
+            block["parent"] = {"page_id": self.page_id}
+            # import pdb
+
+            # pdb.set_trace()
+            RequestPage(self.headers).create(block)
+        else:
+            RequestBlock(self.headers, self.page_id).append_children(block)
